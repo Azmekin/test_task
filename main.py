@@ -13,7 +13,7 @@ from redis import asyncio as aioredis
 
 from dotenv import load_dotenv
 load_dotenv()
-#from starlette.requests import Request
+
 
 from settings import settings
 
@@ -23,8 +23,6 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.PROJECT_VERSION,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    #exception_handlers={AuthJWTException: authjwt_exception_handler},
-    #openapi_tags=tags_metadata
 )
 
 app.add_middleware(
@@ -40,6 +38,7 @@ async def get_cache():
     return 1
 
 @app.post("/weather")
+@cache(expire=60)
 def weather( payload: Any = Body(None)):
     try:
         city=payload["city"]
@@ -72,6 +71,7 @@ def weather( payload: Any = Body(None)):
     return result
 
 @app.post("/many_weather")
+@cache(expire=60)
 def weather(payload: Any = Body(None)):
     try:
         cities = payload["cities"]
@@ -103,7 +103,7 @@ def weather(payload: Any = Body(None)):
 
 @app.on_event("startup")
 async def startup():
-    redis = aioredis.from_url("redis", encoding="utf8", decode_responses=False)
+    redis = aioredis.from_url("redis://redis", encoding="utf8", decode_responses=False)
     FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
 
 def run():
@@ -111,5 +111,4 @@ def run():
 
 
 if __name__ == '__main__':
-    #os.environ["WEATHER_API_TOKEN"] = os.getenv("WEATHER_API_TOKEN")
     run()
